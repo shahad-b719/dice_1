@@ -7,6 +7,8 @@ from pathlib import Path
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
+
 # --- Page setup ---
 st.set_page_config(page_title="🎲 Class Dice Roller", layout="wide")
 st.title("🎲 Class Dice Roller — Interactive")
@@ -98,6 +100,7 @@ if st.button("Reset Rolls"):
    
 
  
+
 
 
 
