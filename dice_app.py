@@ -1,134 +1,90 @@
-
-Created on Fri Sep 26 19:54:16 2025
-
-@author: shahad
-"""
 import streamlit as st
-import random
-import gspread
-import pandas as pd
-from PIL import Image
-from oauth2client.service_account import ServiceAccountCredentials
-import matplotlib.pyplot as plt
-from pathlib import Path
-from datetime import datetime
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
+from pathlib import Path
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-# --- Page Setup ---
+# --- Page setup ---
 st.set_page_config(page_title="🎲 Class Dice Roller", layout="wide")
 st.title("🎲 Class Dice Roller — Interactive")
 
-# --- Google Sheets Authentication ---
+# --- Google Sheets auth using local JSON (via secrets) ---
+sa_file = st.secrets["gcp"]["service_account_json"]
+
 scope = ["https://spreadsheets.google.com/feeds",
          "https://www.googleapis.com/auth/drive"]
 
-st.title("🎲 Virtual Dice Roller with Images")
-credentials = ServiceAccountCredentials.from_json_keyfile_name("service_account.json", scope)
+credentials = ServiceAccountCredentials.from_json_keyfile_name(sa_file, scope)
 gc = gspread.authorize(credentials)
 
-# Initialize session state
-# Open your sheet
-sheet = gc.open("Classdiceroll").sheet1  # Make sure sheet exists and first row has correct headers
+# Open Google Sheet
+sheet = gc.open("Classdiceroll").sheet1
 
-# --- Initialize session state ---
-if "rolls" not in st.session_state:
-    st.session_state.rolls = []
-
-# Button to roll dice
-if st.button("Roll the Dice!"):
-    roll = random.randint(1, 6)
-    st.session_state.rolls.append(roll)
-    st.success(f"You rolled a {roll}")
-# --- Dice Images ---
+# --- Dice images ---
 dice_images = {}
-dice_dir = Path("dice_images")  # Folder where dice1.png, dice2.png ... dice6.png are stored
-for i in range(1, 7):
-    img_path = dice_dir / f"dice{i}.png"
-    if img_path.exists():
-        dice_images[i] = str(img_path)
+dice_dir = Path("dice_app")  # folder with 1.png … 6.png
+if dice_dir.exists():
+    for i in range(1, 7):
+        img_path = dice_dir / f"{i}.png"
+        if img_path.exists():
+            dice_images[i] = str(img_path)
 
-# --- Student Input ---
+# --- Student input ---
 student_name = st.text_input("Enter your name")
 n_dice = st.number_input("Number of dice to roll", min_value=1, max_value=4, value=1, step=1)
 
-# --- Roll Dice Button ---
+# --- Roll button ---
 if st.button("Roll Dice"):
+    if student_name.strip() == "":
+        st.warning("Please enter your name before rolling.")
+    else:
         rolls = np.random.randint(1, 7, size=n_dice)
         total = rolls.sum()
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Store in session
-        st.session_state.rolls.extend(rolls.tolist())
-
         # Prepare row for Google Sheet (pad rolls to 4 columns)
         row = [student_name] + rolls.tolist() + [0]*(4-len(rolls)) + [timestamp]
         sheet.append_row(row)
-
         st.success(f"{student_name} rolled {rolls.tolist()} (Total: {total})")
 
-        # Show dice images for current roll
+        # Show dice images
         st.subheader("Your Dice Faces")
         cols = st.columns(n_dice)
         for i, face in enumerate(rolls):
             with cols[i]:
                 if face in dice_images:
-                    st.image(dice_images[face], width=100)
+                    st.image(dice_images[face], use_column_width=True)
                 else:
                     st.write(f"Face {face}")
 
-    # Show big image for current roll
-   # Show big image for current roll
-    img = Image.open(fr"C:\Users\shahad\Desktop\dice app\dice{roll}.png")
-    st.image(img, width=150)
-# --- Show Class Rolls from Google Sheet ---
+# --- Show class rolls ---
+st.subheader("Class Rolls So Far")
 data = pd.DataFrame(sheet.get_all_records())
+if not data.empty:
+    st.dataframe(data)
 
-# Show previous rolls as small dice images
-# Remove leading/trailing spaces and fix case
-data.columns = [c.strip() for c in data.columns]
-data = pd.DataFrame(sheet.get_all_records())
-data.columns = [c.strip() for c in data.columns]  # remove spaces
-totals = data[['Roll1','Roll2','Roll3','Roll4']].sum(axis=1)
+    # Compute total per row
+    totals = data[['Roll1','Roll2','Roll3','Roll4']].sum(axis=1)
 
-# Columns we expect
-required_cols = ['Roll1','Roll2','Roll3','Roll4']
-
-# Only proceed if all expected columns exist
-if not data.empty and all(col in data.columns for col in required_cols):
-    totals = data[required_cols].sum(axis=1)
-    
-    # Plot histogram
+    # Histogram of totals
     fig, ax = plt.subplots(figsize=(7,4))
     ax.hist(totals, bins=np.arange(1, 25+1)-0.5, edgecolor='black')
-    ax.set_xlabel("Sum of Dice")
+    ax.set_xlabel("Sum of dice")
     ax.set_ylabel("Frequency")
     st.pyplot(fig)
 
+    # Stats
     st.write(f"Class Roll Stats: Mean={totals.mean():.2f}, Max={totals.max()}, Min={totals.min()}")
 else:
-    st.info("No rolls yet or sheet headers missing. Be the first to roll!")
+    st.info("No rolls yet. Be the first to roll!")
 
 
-
-
-# --- Show Previous Rolls in Session ---
-if st.session_state.rolls:
-    st.write("Previous rolls:")
-    st.subheader("Previous Rolls in This Session")
-    cols = st.columns(len(st.session_state.rolls))
-  # Show previous rolls as small dice images
-    for i, r in enumerate(st.session_state.rolls):
-      img = Image.open(fr"C:\Users\shahad\Desktop\dice app\dice{r}.png")
-      cols[i].image(img, width=50)
-        if r in dice_images:
-            cols[i].image(dice_images[r], width=50)
-        else:
-            cols[i].write(r)
-
-    # Show histogram of all rolls
-    # Histogram of session rolls
-    df = pd.DataFrame({"Roll": st.session_state.rolls})
-    st.bar_chart(df["Roll"].value_counts().sort_index())
+# --- Reset rolls ---
+if st.button("Reset Rolls"):
+    st.experimental_rerun()
 
 
 
@@ -142,6 +98,7 @@ if st.session_state.rolls:
    
 
  
+
 
 
 
