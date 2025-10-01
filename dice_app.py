@@ -7,6 +7,9 @@ from datetime import datetime
 from pathlib import Path
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+git add requirements.txt
+git commit -m "Add requirements.txt"
+git push
 
 # --- Page setup ---
 st.set_page_config(page_title="🎲 Class Dice Roller", layout="wide")
@@ -97,6 +100,7 @@ if st.button("Reset Rolls"):
    
 
  
+
 
 
 
