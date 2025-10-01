@@ -1,7 +1,4 @@
 
-@@ -1,41 +1,110 @@
-# -*- coding: utf-8 -*-
-"""
 Created on Fri Sep 26 19:54:16 2025
 
 @author: shahad
@@ -133,7 +130,7 @@ if st.session_state.rolls:
     df = pd.DataFrame({"Roll": st.session_state.rolls})
     st.bar_chart(df["Roll"].value_counts().sort_index())
 
-@@ -44,3 +113,5 @@
+
 
 
   
@@ -145,6 +142,7 @@ if st.session_state.rolls:
    
 
  
+
 
 
 
