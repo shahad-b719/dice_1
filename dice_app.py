@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from pathlib import Path
 import gspread
+import matplotlib.pyplot as plt
 from oauth2client.service_account import ServiceAccountCredentials
 
 # --- Page setup ---
@@ -84,3 +85,4 @@ else:
 # --- Reset rolls ---
 if st.button("Reset Rolls"):
     st.experimental_rerun()
+
